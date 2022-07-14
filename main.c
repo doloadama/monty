@@ -1,47 +1,48 @@
 #include "monty.h"
-
-/* global struct to hold flag for queue and stack length */
-var_t var;
+#include <stdio.h>
+#include <stdlib.h>
+vars var;
 
 /**
-* main - Monty bytecode interpreter
-* @argc: number of arguments passed
-* @argv: array of argument strings
-*
-* Return: EXIT_SUCCESS on success or EXIT_FAILURE on failure
+* main - Start LIFO, FILO program
+* @ac: Number of arguments
+* @av: Pointer containing arguments
+* Return: 0 Success, 1 Failed
 */
-int main(int argc, char *argv[])
+int main(int ac, char **av)
 {
-stack_t *stack = NULL;
-unsigned int line_number = 0;
-FILE *fs = NULL;
-char *lineptr = NULL, *op = NULL;
-size_t n = 0;
+char *opcode;
 
-var.queue = 0;
-var.stack_len = 0;
-if (argc != 2)
+if (ac != 2)
 {
-dprintf(STDOUT_FILENO, "USAGE: monty file\n");
-exit(EXIT_FAILURE);
+fprintf(stderr, "USAGE: monty file\n");
+return (EXIT_FAILURE);
 }
-fs = fopen(argv[1], "r");
-if (fs == NULL)
+
+if (start_vars(&var) != 0)
+return (EXIT_FAILURE);
+
+var.file = fopen(av[1], "r");
+if (!var.file)
 {
-dprintf(STDOUT_FILENO, "Error: Can't open file %s\n", argv[1]);
-exit(EXIT_FAILURE);
+fprintf(stderr, "Error: Can't open file %s\n", av[1]);
+free_all();
+return (EXIT_FAILURE);
 }
-on_exit(free_lineptr, &lineptr);
-on_exit(free_stack, &stack);
-on_exit(m_fs_close, fs);
-while (getline(&lineptr, &n, fs) != -1)
+
+while (getline(&var.buff, &var.tmp, var.file) != EOF)
 {
-line_number++;
-op = strtok(lineptr, "\n\t\r ");
-if (op != NULL && op[0] != '#')
+opcode = strtok(var.buff, " \r\t\n");
+if (opcode != NULL)
+if (call_funct(&var, opcode) == EXIT_FAILURE)
 {
-get_op(op, &stack, line_number);
+free_all();
+return (EXIT_FAILURE);
 }
+var.line_number++;
 }
-exit(EXIT_SUCCESS);
+
+free_all();
+
+return (EXIT_SUCCESS);
 }
